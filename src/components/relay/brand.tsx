@@ -38,11 +38,11 @@ export function Wordmark({ compact = false }: { compact?: boolean }) {
       <BrandMark />
       <div className="leading-none">
         <span className="block text-[17px] font-semibold tracking-[-0.02em]">
-          Relay
+          SmartRouter
         </span>
         {!compact && (
           <span className="mt-1 block text-[10px] font-medium tracking-[0.16em] text-muted-foreground uppercase">
-            Coordination desk
+            Relief operations
           </span>
         )}
       </div>

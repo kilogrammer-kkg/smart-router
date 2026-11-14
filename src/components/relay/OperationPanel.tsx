@@ -2,6 +2,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Overview } from "@/lib/relay";
 import { cn } from "@/lib/utils";
 import { MapPin, Route as RouteIcon, Truck, Users } from "lucide-react";
+import { Link } from "react-router";
 
 const ROUTE_STATUS: Record<string, { label: string; className: string }> = {
   open: {
@@ -163,6 +164,14 @@ export function OperationPanel({ overview }: { overview: Overview }) {
           </ul>
         </TabsContent>
       </Tabs>
+
+      <Link
+        to="/catalog"
+        className="mt-4 flex items-center justify-between rounded-xl border border-white/80 bg-white/45 px-3 py-2 text-[11px] font-medium text-[oklch(0.4_0.045_226)] transition-colors hover:bg-white/70"
+      >
+        Open the catalog for full records and notes
+        <span className="text-primary">→</span>
+      </Link>
     </section>
   );
 }

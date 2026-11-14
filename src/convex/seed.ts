@@ -11,7 +11,7 @@ export const ensureSeeded = mutation({
   args: {},
   handler: async (ctx) => {
     const userId = await getAuthUserId(ctx);
-    if (userId === null) throw new Error("Sign in to open the coordination desk.");
+    if (userId === null) throw new Error("Sign in to open SmartRouter.");
 
     const existing = await ctx.db.query("camps").first();
     if (existing) return { seeded: false };

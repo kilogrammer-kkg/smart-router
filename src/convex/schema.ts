@@ -202,12 +202,39 @@ const schema = defineSchema(
       ),
       decisionNote: v.optional(v.string()),
       decidedBy: v.optional(v.string()),
+      decidedById: v.optional(v.id("users")),
       decidedAt: v.optional(v.number()),
+
+      // who posted it, and the optional document or photo they uploaded
+      submittedById: v.optional(v.id("users")),
+      attachment: v.optional(
+        v.object({
+          storageId: v.id("_storage"),
+          name: v.string(),
+        }),
+      ),
+
       createdAt: v.number(),
       updatedAt: v.number(),
     })
       .index("by_status", ["status"])
-      .index("by_created", ["createdAt"]),
+      .index("by_created", ["createdAt"])
+      .index("by_submitted", ["submittedById"]),
+
+    comments: defineTable({
+      targetType: v.union(
+        v.literal("update"),
+        v.literal("camp"),
+        v.literal("truck"),
+        v.literal("route"),
+        v.literal("volunteer"),
+      ),
+      targetId: v.string(),
+      authorId: v.id("users"),
+      authorName: v.string(),
+      body: v.string(),
+      createdAt: v.number(),
+    }).index("by_target", ["targetType", "targetId", "createdAt"]),
 
     activity: defineTable({
       updateId: v.optional(v.id("updates")),

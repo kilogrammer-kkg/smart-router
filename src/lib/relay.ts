@@ -11,6 +11,21 @@ export type ActivityEntry = Overview["activity"][number];
 export type RouteCard = Overview["routes"][number];
 export type TruckCard = Overview["trucks"][number];
 export type CampCard = Overview["camps"][number];
+export type CommentItem = Overview["comments"][number];
+export type CommentTarget =
+  | "update"
+  | "camp"
+  | "truck"
+  | "route"
+  | "volunteer";
+
+export type CatalogList = NonNullable<
+  FunctionReturnType<typeof api.catalog.items>
+>;
+export type CatalogItem = CatalogList["items"][number];
+export type CatalogDetail = NonNullable<
+  FunctionReturnType<typeof api.catalog.detail>
+>;
 
 export const REPORT_TYPE_LABEL: Record<string, string> = {
   route_blocked: "Road blocked",

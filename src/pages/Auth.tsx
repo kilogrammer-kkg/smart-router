@@ -123,7 +123,7 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
                 <div className="flex justify-center">
                   <button
                     type="button"
-                    aria-label="Relay home"
+                    aria-label="SmartRouter home"
                     onClick={() => navigate("/")}
                     className="mb-4"
                   >
@@ -131,11 +131,11 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
                   </button>
                 </div>
                 <CardTitle className="font-display text-2xl font-medium tracking-[-0.02em]">
-                  Open the coordination desk
+                  Sign in to SmartRouter
                 </CardTitle>
                 <CardDescription>
-                  Sign in with email, or continue as a guest. The demo operation
-                  seeds itself.
+                  An internal desk for the relief operations team. Use a work email,
+                  or continue as a guest to explore the sample operation.
                 </CardDescription>
               </CardHeader>
               <form onSubmit={handleEmailSubmit}>

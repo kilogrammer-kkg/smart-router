@@ -2,8 +2,8 @@ import { getAuthUserId } from "@convex-dev/auth/server";
 import { query } from "./_generated/server";
 
 /**
- * Everything the coordination desk renders, in one reactive query: the stored
- * operation map, the approval queue, decided updates and the activity timeline.
+ * Everything the desk renders, in one reactive query: the operation map, the
+ * approval queue, the team discussion, personal activity and the timeline.
  */
 export const overview = query({
   args: {},
@@ -11,14 +11,16 @@ export const overview = query({
     const userId = await getAuthUserId(ctx);
     if (userId === null) return null;
 
-    const [camps, routes, trucks, volunteers, updates, activity] =
+    const [user, camps, routes, trucks, volunteers, updates, activity, comments] =
       await Promise.all([
+        ctx.db.get(userId),
         ctx.db.query("camps").collect(),
         ctx.db.query("routes").collect(),
         ctx.db.query("trucks").collect(),
         ctx.db.query("volunteers").collect(),
         ctx.db.query("updates").order("desc").take(30),
         ctx.db.query("activity").order("desc").take(50),
+        ctx.db.query("comments").order("desc").take(100),
       ]);
 
     const campName = new Map(camps.map((camp) => [camp._id, camp.name]));
@@ -65,34 +67,79 @@ export const overview = query({
       route: truck.routeId ? (routeName.get(truck.routeId) ?? null) : null,
     }));
 
-    const mappedUpdates = updates.map((update) => ({
-      id: update._id,
-      rawText: update.rawText,
-      reportedBy: update.reportedBy,
-      type: update.type,
-      confidence: update.confidence,
-      status: update.status,
-      structured: update.structured,
-      connected: update.connected,
-      impacts: update.impacts,
-      proposals: update.proposals,
-      checks: update.checks,
-      revisionNote: update.revisionNote,
-      question: update.question,
-      conflict: update.conflict,
-      decision: update.decision,
-      decisionNote: update.decisionNote,
-      decidedBy: update.decidedBy,
-      decidedAt: update.decidedAt,
-      createdAt: update.createdAt,
-    }));
+    const mappedUpdates = await Promise.all(
+      updates.map(async (update) => ({
+        id: update._id,
+        rawText: update.rawText,
+        reportedBy: update.reportedBy,
+        type: update.type,
+        confidence: update.confidence,
+        status: update.status,
+        structured: update.structured,
+        connected: update.connected,
+        impacts: update.impacts,
+        proposals: update.proposals,
+        checks: update.checks,
+        revisionNote: update.revisionNote,
+        question: update.question,
+        conflict: update.conflict,
+        decision: update.decision,
+        decisionNote: update.decisionNote,
+        decidedBy: update.decidedBy,
+        decidedAt: update.decidedAt,
+        createdAt: update.createdAt,
+        submittedById: update.submittedById,
+        decidedById: update.decidedById,
+        attachment: update.attachment
+          ? {
+              name: update.attachment.name,
+              url: await ctx.storage.getUrl(update.attachment.storageId),
+            }
+          : null,
+      })),
+    );
 
     const pending = mappedUpdates.filter((update) => update.status !== "resolved");
     const decided = mappedUpdates
       .filter((update) => update.status === "resolved")
       .slice(0, 6);
 
+    const sortedComments = comments
+      .slice()
+      .sort((a, b) => a.createdAt - b.createdAt)
+      .map((comment) => ({
+        id: comment._id,
+        targetType: comment.targetType,
+        targetId: comment.targetId,
+        authorId: comment.authorId,
+        authorName: comment.authorName,
+        body: comment.body,
+        createdAt: comment.createdAt,
+      }));
+
+    const myReports = mappedUpdates.filter(
+      (update) => update.submittedById === userId,
+    );
+    const myApprovals = mappedUpdates.filter(
+      (update) => update.decidedById === userId,
+    );
+    const myNotes = comments.filter((comment) => comment.authorId === userId);
+    const meName = user?.name?.trim() || user?.email || "Team member";
+
     return {
+      me: { id: userId, name: meName },
+      mine: {
+        reports: myReports.length,
+        approvals: myApprovals.length,
+        notes: myNotes.length,
+        recent: myReports.slice(0, 3).map((update) => ({
+          id: update.id,
+          title:
+            update.structured.routeName ?? update.rawText.slice(0, 80),
+          status: update.status,
+          createdAt: update.createdAt,
+        })),
+      },
       camps: campCards,
       routes: routeCards,
       trucks: truckCards,
@@ -105,6 +152,7 @@ export const overview = query({
       queue: pending,
       decided,
       activity,
+      comments: sortedComments,
       stats: {
         people: camps.reduce((sum, camp) => sum + camp.headcount, 0),
         camps: camps.length,

@@ -1,9 +1,11 @@
+import { Discussion } from "@/components/relay/Comments";
 import { Button } from "@/components/ui/button";
 import {
   CONFIDENCE_STYLE,
   REPORT_TYPE_LABEL,
   SEVERITY_STYLE,
   timeAgo,
+  type CommentItem,
   type Proposal,
   type UpdateItem,
 } from "@/lib/relay";
@@ -15,6 +17,7 @@ import {
   ClipboardCheck,
   MapPin,
   MessageSquare,
+  Paperclip,
   Pencil,
   Route as RouteIcon,
   Send,
@@ -27,6 +30,7 @@ import { useState } from "react";
 
 type Props = {
   update: UpdateItem;
+  comments: CommentItem[];
   busy: boolean;
   onApprove: (updateId: UpdateItem["id"], includedKeys: string[]) => void;
   onReject: (updateId: UpdateItem["id"], note?: string) => void;
@@ -34,6 +38,7 @@ type Props = {
     updateId: UpdateItem["id"],
     resolution: "new" | "previous" | "verify",
   ) => void;
+  onComment: (updateId: UpdateItem["id"], body: string) => Promise<void>;
 };
 
 const TYPE_STYLE: Record<string, string> = {
@@ -53,12 +58,15 @@ const PROPOSAL_ICON: Record<Proposal["kind"], typeof RouteIcon> = {
 
 export function ApprovalCard({
   update,
+  comments,
   busy,
   onApprove,
   onReject,
   onResolveConflict,
+  onComment,
 }: Props) {
   const [editing, setEditing] = useState(false);
+  const [showDiscussion, setShowDiscussion] = useState(false);
   const [showReasoning, setShowReasoning] = useState(false);
   const [selected, setSelected] = useState<string[]>(
     update.proposals.filter((proposal) => proposal.included).map((proposal) => proposal.key),
@@ -111,6 +119,17 @@ export function ApprovalCard({
           <p className="font-display text-[16px] leading-6 text-[oklch(0.33_0.035_242)] italic">
             “{update.rawText}”
           </p>
+          {update.attachment && update.attachment.url && (
+            <a
+              href={update.attachment.url}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-white/90 bg-white/70 px-2.5 py-1.5 text-[10.5px] font-medium text-[oklch(0.4_0.045_226)] transition-colors hover:bg-white/95"
+            >
+              <Paperclip className="size-3 text-primary" />
+              {update.attachment.name}
+            </a>
+          )}
         </blockquote>
 
         {/* what was read */}
@@ -321,6 +340,39 @@ export function ApprovalCard({
             </ul>
           </section>
         )}
+
+        {/* team discussion */}
+        <section className="rounded-xl border border-white/80 bg-white/40 px-3.5 py-2.5">
+          <button
+            type="button"
+            onClick={() => setShowDiscussion((value) => !value)}
+            aria-expanded={showDiscussion}
+            className="flex w-full items-center gap-2 text-left"
+          >
+            <MessageSquare className="size-3.5 text-primary" />
+            <span className="text-[11px] font-semibold text-[oklch(0.4_0.03_240)]">
+              Discussion
+            </span>
+            <span className="text-[10.5px] text-muted-foreground">
+              {comments.length} note{comments.length === 1 ? "" : "s"}
+            </span>
+            <ChevronDown
+              className={cn(
+                "ml-auto size-3.5 text-muted-foreground transition-transform",
+                showDiscussion && "rotate-180",
+              )}
+            />
+          </button>
+          {showDiscussion && (
+            <div className="mt-3 border-t border-white/70 pt-3">
+              <Discussion
+                comments={comments}
+                busy={busy}
+                onSend={(body) => onComment(update.id, body)}
+              />
+            </div>
+          )}
+        </section>
 
         {/* a human question */}
         {update.question && (

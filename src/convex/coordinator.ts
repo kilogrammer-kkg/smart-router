@@ -36,9 +36,15 @@ export const submitUpdate = mutation({
   args: {
     rawText: v.string(),
     reportedBy: v.optional(v.string()),
+    attachment: v.optional(
+      v.object({
+        storageId: v.id("_storage"),
+        name: v.string(),
+      }),
+    ),
   },
   handler: async (ctx, args) => {
-    await requireUser(ctx);
+    const user = await requireUser(ctx);
     const rawText = args.rawText.trim();
     if (rawText.length < 4) {
       throw new Error("Write the update before running the coordinator.");
@@ -54,6 +60,10 @@ export const submitUpdate = mutation({
       ...operation,
     });
     const updateId = await persistRun(ctx, rawText, result);
+    await ctx.db.patch(updateId, {
+      submittedById: user.userId,
+      attachment: args.attachment,
+    });
     return { updateId, status: result.status };
   },
 });
@@ -134,6 +144,7 @@ export const approveUpdate = mutation({
       decision: "approved",
       decisionNote: args.note,
       decidedBy: user.name,
+      decidedById: user.userId,
       decidedAt: Date.now(),
       updatedAt: Date.now(),
       question: undefined,
@@ -174,6 +185,7 @@ export const rejectUpdate = mutation({
       decision: "rejected",
       decisionNote: args.note ?? "Rejected at the desk. Nothing applied.",
       decidedBy: user.name,
+      decidedById: user.userId,
       decidedAt: Date.now(),
       updatedAt: Date.now(),
       question: undefined,
@@ -215,6 +227,7 @@ export const resolveConflict = mutation({
         decision: "rejected",
         decisionNote: `Kept ${conflict.otherReporter}'s original report.`,
         decidedBy: user.name,
+        decidedById: user.userId,
         decidedAt: now,
         updatedAt: now,
         question: undefined,
@@ -235,6 +248,7 @@ export const resolveConflict = mutation({
         decision: "rejected",
         decisionNote: "Sent for field verification.",
         decidedBy: user.name,
+        decidedById: user.userId,
         decidedAt: now,
         updatedAt: now,
         question: undefined,
@@ -245,6 +259,7 @@ export const resolveConflict = mutation({
           decision: "rejected",
           decisionNote: "Superseded by a field verification request.",
           decidedBy: user.name,
+          decidedById: user.userId,
           decidedAt: now,
           updatedAt: now,
           question: undefined,
@@ -273,6 +288,7 @@ export const resolveConflict = mutation({
         decision: "rejected",
         decisionNote: `Overtaken by a newer report from ${update.reportedBy}.`,
         decidedBy: user.name,
+        decidedById: user.userId,
         decidedAt: now,
         updatedAt: now,
         question: undefined,
@@ -283,6 +299,7 @@ export const resolveConflict = mutation({
       decision: "rejected",
       decisionNote: "Superseded — the plan was rebuilt from this report.",
       decidedBy: user.name,
+      decidedById: user.userId,
       decidedAt: now,
       updatedAt: now,
       question: undefined,
